@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hesitation Machine</title>
+<style>
+:root {
+  --site-primary: #171717;
+  --site-secondary: #e9e9e4;
+  --site-background: #f5f5f1;
+  --site-on-primary: #ffffff;
+  --site-on-secondary: #171717;
+  --site-on-background: #171717;
+  --site-font-body: Inter, Helvetica, Arial, sans-serif;
+  --site-font-heading: Inter, Helvetica, Arial, sans-serif;
+  --site-heading-scale: 1;
+  --site-spacing-scale: 1;
+  --site-radius-scale: 1;
+  --site-decoration-opacity: 1;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: var(--site-font-body);
+  color: var(--site-on-background);
+  background: var(--site-background);
+}
+#app {
+  min-height: 100vh;
+  background: var(--site-background);
+  border-radius: 0;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: calc(28px * var(--site-spacing-scale)) calc(34px * var(--site-spacing-scale));
+  border-bottom: 1px solid #bdbdb7;
+}
+h1 {
+  margin: 0;
+  font-size: calc(17px * var(--site-heading-scale));
+  font-weight: 500;
+  letter-spacing: .01em;
+}
+header span { font-size: 12px; opacity: .58; }
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(290px, .55fr);
+  min-height: calc(100vh - 76px);
+}
+.editor {
+  display: flex;
+  flex-direction: column;
+  padding: calc(52px * var(--site-spacing-scale)) calc(44px * var(--site-spacing-scale));
+  border-right: 1px solid #bdbdb7;
+}
+.prompt {
+  max-width: 610px;
+  margin-bottom: 34px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+textarea {
+  width: 100%;
+  min-height: 300px;
+  flex: 1;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: 400 24px/1.55 Georgia, serif;
+  padding: 0;
+}
+textarea::placeholder { color: #999993; }
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 30px;
+  padding-top: 18px;
+  border-top: 1px solid #d1d1cb;
+}
+button {
+  border: 1px solid #171717;
+  background: #171717;
+  color: white;
+  padding: 10px 16px;
+  font: inherit;
+  cursor: pointer;
+}
+button.secondary {
+  background: transparent;
+  color: inherit;
+  border-color: #aaa9a3;
+}
+.stats {
+  padding: calc(34px * var(--site-spacing-scale));
+  background: var(--site-secondary);
+}
+.section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  opacity: .55;
+  margin: 0 0 18px;
+}
+.stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 0;
+  border-bottom: 1px solid #c9c9c3;
+  font-size: 12px;
+}
+.stat strong { font-weight: 500; font-variant-numeric: tabular-nums; }
+.group { margin-bottom: 34px; }
+.notice {
+  margin-top: 28px;
+  padding: 15px;
+  border: 1px solid #aaa9a3;
+  font: 12px/1.55 Georgia, serif;
+}
+#hesitation {
+  font-size: 22px;
+  font-family: Georgia, serif;
+  margin-top: 8px;
+}
+#trace {
+  font: 12px/1.7 var(--site-font-body);
+  white-space: pre-wrap;
+  color: #55554f;
+}
+.pause-track { display: flex; align-items: center; gap: 4px; min-height: 24px; margin: 12px 0 8px; }
+.pause-mark { display: block; width: 4px; min-width: 4px; border-radius: 2px; background: #77776f; opacity: .65; }
+.pause-note { font-size: 10px; line-height: 1.5; color: #66665f; }
+.trace-heading { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin: 18px 0 6px; }
+.finished-summary { border-top: 1px solid #c9c9c3; margin-top: 12px; padding-top: 12px; }
+.header-tools { display: flex; align-items: center; gap: 18px; }
+.language-choice { display: flex; gap: 4px; }
+.language-choice .language-button { padding: 5px 8px; font-size: 11px; background: transparent; color: #55554f; border-color: transparent; }
+.language-choice .language-button.active { border-color: #aaa9a3; color: #171717; }
+@media (max-width: 760px) {
+  main { grid-template-columns: 1fr; }
+  .editor { border-right: 0; border-bottom: 1px solid #bdbdb7; min-height: 70vh; }
+  textarea { min-height: 260px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <h1>Hesitation Machine</h1>
+  <div class="header-tools"><span>writing process / prototype 01</span><div class="language-choice" aria-label="Choose interface language"><button class="language-button active" id="lang-en" type="button">EN</button><button class="language-button" id="lang-ko" type="button">한국어</button></div></div>
+</header>
+<main>
+<section class="editor">
+  <div class="prompt" id="prompt">Write something you cannot easily translate.</div>
+  <textarea id="writer" placeholder="Begin writing..."></textarea>
+  <div class="actions">
+    <div id="status">waiting</div>
+    <div>
+      <button class="secondary" id="reset">reset</button>
+  <button id="save">finish writing</button>
+    </div>
+  </div>
+</section>
+<aside class="stats">
+  <div class="group">
+    <p class="section-title">Temporal</p>
+    <div class="stat"><span>Total writing time</span><strong id="total">00:00</strong></div>
+    <div class="stat"><span>Time before first word</span><strong id="first">--</strong></div>
+    <div class="stat"><span>Longest pause</span><strong id="longest">--</strong></div>
+    <div class="stat"><span>Typing rhythm</span><strong id="rhythm">--</strong></div>
+    <div class="stat"><span>Speed changes</span><strong id="speed">0</strong></div>
+  </div>
+  <div class="group">
+    <p class="section-title">Textual</p>
+    <div class="stat"><span>Deletions</span><strong id="deletions">0</strong></div>
+    <div class="stat"><span>Rewrites</span><strong id="rewrites">0</strong></div>
+    <div class="stat"><span>Repeated words</span><strong id="repeated">0</strong></div>
+    <div class="stat"><span>Unfinished sentences</span><strong id="unfinished">0</strong></div>
+    <div class="stat"><span>Punctuation marks</span><strong id="punct">0</strong></div>
+  </div>
+  <div class="group">
+    <p class="section-title">Linguistic</p>
+    <div class="stat"><span>Detected language</span><strong id="language">—</strong></div>
+    <div class="stat"><span>Language switches</span><strong id="switches">0</strong></div>
+    <div class="stat"><span>Code-switching</span><strong id="code">—</strong></div>
+  </div>
+  <div class="notice">
+    <div class="section-title">Hesitation right now</div>
+    <div id="hesitation">Waiting for your first words.</div>
+    <div class="pause-track" id="pauseTrack" aria-label="Visual trace of pauses"></div>
+    <div id="trace">A pause appears here when you stop typing. The system can measure its duration, but not what caused it.</div>
+    <div class="pause-note">Each mark represents a pause longer than 1.2 seconds. Longer marks indicate longer pauses.</div>
+  </div>
+</aside>
+</main>
+</div>
+<script>
+const writer = document.getElementById('writer');
+const els = Object.fromEntries(['total','first','longest','rhythm','speed','deletions','rewrites','repeated','unfinished','punct','language','switches','code','hesitation','status','trace'].map(id => [id, document.getElementById(id)]));
+let uiLanguage = 'en';
+const translations = {
+  en: {
+    prompt: 'Write something you cannot easily translate.', placeholder: 'Begin writing...', waiting: 'waiting', ready: 'ready', writing: 'writing', hesitating: 'hesitating', finished: 'session finished',
+    reset: 'reset', finish: 'finish writing', done: 'finished', temporal: 'Temporal', textual: 'Textual', linguistic: 'Linguistic', total: 'Total writing time', first: 'Time before first word', longest: 'Longest pause', rhythm: 'Typing rhythm', speed: 'Speed changes', deletions: 'Deletions', rewrites: 'Rewrites', repeated: 'Repeated words', unfinished: 'Unfinished sentences', punct: 'Punctuation marks', detected: 'Detected language', switches: 'Language switches', code: 'Code-switching', current: 'Hesitation right now', initial: 'Waiting for your first words.', help: 'A pause appears here when you stop typing. The system can measure its duration, but not what caused it.', note: 'Each mark represents a pause longer than 1.2 seconds. Longer marks indicate longer pauses.', activePause: 'A pause is happening. Its duration is visible; its meaning remains unknown.', resumed: 'Typing has resumed', complete: 'Session complete', summary: 'Your writing trace', writingTime: 'Writing time', longestPause: 'Longest pause', revisions: 'Revisions', language: 'Language', disclaimer: 'This is a record of visible actions, not an interpretation of your thoughts. It stays in this open page and is not permanently saved.'
+  },
+  ko: {
+    prompt: '쉽게 번역할 수 없는 무언가를 써보세요.', placeholder: '글쓰기를 시작하세요...', waiting: '대기 중', ready: '준비됨', writing: '작성 중', hesitating: '멈춤 감지', finished: '글쓰기 종료',
+    reset: '초기화', finish: '글쓰기 마치기', done: '완료됨', temporal: '시간', textual: '텍스트', linguistic: '언어', total: '총 작성 시간', first: '첫 단어까지 걸린 시간', longest: '가장 긴 멈춤', rhythm: '입력 리듬', speed: '속도 변화', deletions: '삭제 횟수', rewrites: '수정 횟수', repeated: '반복된 단어', unfinished: '미완성 문장', punct: '문장부호', detected: '감지된 언어', switches: '언어 전환', code: '언어 혼용', current: '지금의 망설임', initial: '첫 단어를 기다리는 중입니다.', help: '입력을 멈추면 여기에 멈춘 시간이 표시됩니다. 시스템은 멈춤의 길이는 측정할 수 있지만, 그 이유는 알 수 없습니다.', note: '각 표시는 1.2초보다 긴 멈춤을 나타냅니다. 막대가 길수록 멈춘 시간이 깁니다.', activePause: '멈춤이 감지되었습니다. 시간은 보이지만 그 의미는 알 수 없습니다.', resumed: '입력이 다시 시작되었습니다', complete: '세션 종료', summary: '글쓰기 흔적', writingTime: '작성 시간', longestPause: '가장 긴 멈춤', revisions: '수정 횟수', language: '언어', disclaimer: '이 기록은 관찰 가능한 행동을 보여줄 뿐, 생각을 해석하지 않습니다. 현재 페이지에만 남으며 영구 저장되지 않습니다.'
+  }
+};
+function setLanguage(lang) {
+  uiLanguage = lang;
+  const t = translations[lang];
+  document.documentElement.lang = lang;
+  document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+  document.getElementById('lang-ko').classList.toggle('active', lang === 'ko');
+  document.getElementById('prompt').textContent = t.prompt;
+  writer.placeholder = t.placeholder;
+  document.getElementById('reset').textContent = t.reset;
+  document.getElementById('save').textContent = finished ? t.done : t.finish;
+  els.status.textContent = finished ? t.finished : (start ? t.writing : t.waiting);
+  const titles = document.querySelectorAll('.group .section-title');
+  [t.temporal, t.textual, t.linguistic].forEach((label, i) => titles[i].textContent = label);
+  const labels = {total:t.total, first:t.first, longest:t.longest, rhythm:t.rhythm, speed:t.speed, deletions:t.deletions, rewrites:t.rewrites, repeated:t.repeated, unfinished:t.unfinished, punct:t.punct, language:t.detected, switches:t.switches, code:t.code};
+  Object.entries(labels).forEach(([id,label]) => { const el = document.getElementById(id); if (el && el.parentElement) el.parentElement.querySelector('span').textContent = label; });
+  document.querySelector('.notice .section-title').textContent = t.current;
+  document.querySelector('.pause-note').textContent = t.note;
+  if (!finished) {
+    els.hesitation.textContent = lastInput ? els.hesitation.textContent : t.initial;
+    if (!lastInput) els.trace.textContent = t.help;
+  } else {
+    els.hesitation.textContent = t.complete;
+    const trace = savedSnapshots[savedSnapshots.length - 1];
+    if (trace) showSummary(trace);
+  }
+}
+function showSummary(trace) {
+  const t = translations[uiLanguage];
+  els.trace.innerHTML = '<div class="finished-summary"><div class="trace-heading">' + t.summary + '</div><div>' + t.writingTime + ': ' + fmt(trace.totalWritingTime) + '</div><div>' + t.longestPause + ': ' + (trace.longestPause/1000).toFixed(2) + ' ' + (uiLanguage === 'ko' ? '초' : 'seconds') + '</div><div>' + t.deletions + ': ' + trace.deletions + '</div><div>' + t.revisions + ': ' + trace.rewrites + '</div><div>' + t.language + ': ' + trace.language + '</div><p class="pause-note">' + t.disclaimer + '</p></div>';
+}
+let start = null, firstChar = null, lastInput = null, longestPause = 0, finished = false;
+let prevLength = 0, deletions = 0, rewrites = 0, speedChanges = 0, intervals = [];
+let savedSnapshots = [], lastLanguage = '—', languageSwitches = 0, pauseMarkedForInput = false;
+
+function fmt(ms) {
+  const s = Math.floor(ms / 1000), m = Math.floor(s / 60), sec = s % 60;
+  return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+}
+function updateTextStats(text) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const normalizedWords = words.map(w => w.toLowerCase());
+  const repeated = normalizedWords.filter((w,i) => normalizedWords.indexOf(w) !== i).length;
+  els.repeated.textContent = repeated;
+  els.unfinished.textContent = /(?:[A-Za-zÀ-ÿ가-힣])\s*$/.test(text) ? (text ? 1 : 0) : 0;
+  els.punct.textContent = (text.match(/[.!?,;:]/g) || []).length;
+  const hasHangul = /[가-힣]/.test(text), hasLatin = /[A-Za-z]/.test(text);
+  const language = hasHangul && hasLatin ? 'mixed' : hasHangul ? 'Korean' : hasLatin ? 'Latin' : '—';
+  if (lastLanguage !== '—' && language !== '—' && language !== lastLanguage) languageSwitches++;
+  if (language !== '—') lastLanguage = language;
+  els.switches.textContent = languageSwitches;
+  els.language.textContent = language;
+  els.code.textContent = hasHangul && hasLatin ? 'detected' : '—';
+}
+function render() {
+  if (!start || finished) return;
+  const now = performance.now();
+  els.total.textContent = fmt(now - start);
+  if (lastInput) {
+    const pause = now - lastInput;
+    if (pause > 1200) {
+      els.hesitation.textContent = (pause/1000).toFixed(2) + ' sec';
+      els.status.textContent = 'hesitating';
+      els.trace.textContent = translations[uiLanguage].activePause;
+    } else {
+      els.hesitation.textContent = translations[uiLanguage].resumed;
+      els.status.textContent = translations[uiLanguage].writing;
+    }
+  }
+  els.longest.textContent = longestPause ? (longestPause/1000).toFixed(2)+' sec' : '--';
+  els.rhythm.textContent = intervals.length ? Math.round(60000 / (intervals.reduce((a,b)=>a+b,0)/intervals.length))+' / min' : '--';
+  els.speed.textContent = speedChanges;
+}
+writer.addEventListener('focus', () => {
+  if (!start) { start = performance.now(); els.status.textContent = translations[uiLanguage].ready; }
+});
+writer.addEventListener('input', e => {
+  const now = performance.now();
+  if (!start) start = now;
+  if (firstChar === null) { firstChar = now; els.first.textContent = fmt(firstChar - start); }
+  if (lastInput) {
+    const gap = now - lastInput;
+    if (gap > 1200) {
+      longestPause = Math.max(longestPause, gap);
+      els.longest.textContent = (longestPause/1000).toFixed(2)+' sec';
+      const mark = document.createElement('span');
+      mark.className = 'pause-mark';
+      mark.style.height = Math.min(34, Math.max(8, gap / 250)) + 'px';
+      mark.title = 'Pause: ' + (gap/1000).toFixed(2) + ' seconds';
+      document.getElementById('pauseTrack').appendChild(mark);
+      pauseMarkedForInput = true;
+    } else intervals.push(gap);
+    if (gap > 3500) speedChanges++;
+  }
+  if (e.inputType && e.inputType.startsWith('delete')) {
+    deletions += Math.max(1, prevLength - writer.value.length);
+    els.deletions.textContent = deletions;
+    rewrites++;
+    els.rewrites.textContent = rewrites;
+  }
+  prevLength = writer.value.length;
+  lastInput = now;
+  updateTextStats(writer.value);
+  render();
+});
+setInterval(render, 250);
+document.getElementById('reset').onclick = () => {
+  writer.value=''; writer.readOnly=false; start=null; firstChar=null; lastInput=null; longestPause=0; finished=false; deletions=0; rewrites=0; intervals=[]; speedChanges=0; prevLength=0; lastLanguage='—'; languageSwitches=0; savedSnapshots=[];
+  document.getElementById('pauseTrack').innerHTML='';
+  document.getElementById('save').disabled=false; document.getElementById('save').textContent=translations[uiLanguage].finish;
+  ['total','first','longest','rhythm'].forEach(k=>els[k].textContent='--'); els.total.textContent='00:00';
+  ['deletions','rewrites','repeated','unfinished','punct','switches','speed'].forEach(k=>els[k].textContent='0');
+  els.language.textContent='—'; els.code.textContent='—'; els.hesitation.textContent=translations[uiLanguage].initial; els.trace.textContent=translations[uiLanguage].help; els.status.textContent=translations[uiLanguage].waiting;
+};
+document.getElementById('save').onclick = () => {
+  const text = writer.value.trim();
+  if (!text || finished) return;
+  finished = true;
+  const finishTime = performance.now();
+  const trace = {
+    text, totalWritingTime: start ? Math.round(finishTime-start) : 0,
+    longestPause: Math.round(longestPause), deletions, rewrites,
+    repeatedWords: els.repeated.textContent, language: els.language.textContent,
+    unfinishedSentences: els.unfinished.textContent, timestamp: new Date().toISOString()
+  };
+  savedSnapshots.push(trace);
+  els.hesitation.textContent = 'Session complete';
+  showSummary(trace);
+  els.status.textContent = translations[uiLanguage].finished;
+  writer.readOnly = true;
+  els.total.textContent = fmt(trace.totalWritingTime);
+  els.hesitation.textContent = translations[uiLanguage].complete;
+  document.getElementById('save').textContent = translations[uiLanguage].done;
+  document.getElementById('save').disabled = true;
+};
+document.getElementById('lang-en').onclick = () => setLanguage('en');
+document.getElementById('lang-ko').onclick = () => setLanguage('ko');
+setLanguage('en');
+</script>
+
+<!--sites-preview-theme:start-->
+<style data-sites-preview-theme>:root{--site-secondary:#eaebeb !important;--site-background:#ffffff !important;--site-on-background:#000000 !important}</style>
+<script type="application/json" data-sites-preview-theme>{"appearance":"custom","primary":null,"secondary":"#eaebeb","background":"#ffffff","typography":"original","spacing":1,"roundness":null,"headingScale":1,"decorationOpacity":null}</script>
+<!--sites-preview-theme:end-->
+</body>
+</html>
