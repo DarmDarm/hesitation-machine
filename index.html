@@ -47,24 +47,27 @@ h1 {
 header span { font-size: 12px; opacity: .58; }
 main {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(290px, .55fr);
-  min-height: calc(100vh - 76px);
+  grid-template-columns: minmax(0, 1.05fr) minmax(560px, .95fr);
+  min-height: calc(100vh - 68px);
+  height: calc(100dvh - 68px);
+  overflow: hidden;
 }
 .editor {
   display: flex;
   flex-direction: column;
-  padding: calc(52px * var(--site-spacing-scale)) calc(44px * var(--site-spacing-scale));
+  padding: clamp(24px, 4vh, 54px) clamp(24px, 3.2vw, 56px);
   border-right: 1px solid #bdbdb7;
+  min-height: 0;
 }
 .prompt {
   max-width: 610px;
-  margin-bottom: 34px;
+  margin-bottom: clamp(18px, 3vh, 34px);
   font-size: 15px;
   line-height: 1.5;
 }
 textarea {
   width: 100%;
-  min-height: 300px;
+  min-height: 0;
   flex: 1;
   resize: none;
   border: 0;
@@ -97,8 +100,36 @@ button.secondary {
   border-color: #aaa9a3;
 }
 .stats {
-  padding: calc(34px * var(--site-spacing-scale));
+  padding: clamp(16px, 2vw, 30px);
   background: var(--site-secondary);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px 20px;
+  min-height: 0;
+  overflow: auto;
+  align-content: stretch;
+}
+.stats .notice { grid-column: 1 / -1; grid-row: 1; margin-top: 0; padding: 12px 15px; }
+.stats .group { margin: 0; min-width: 0; }
+.stats .group:first-of-type { grid-column: 1; grid-row: 2; }
+.stats .group:nth-of-type(2) { grid-column: 2; grid-row: 2; }
+.stats .group:last-of-type { grid-column: 3; grid-row: 2; }
+.stats .stat { padding: 8px 0; font-size: 11px; gap: 6px; align-items: baseline; }
+.stats .stat span { max-width: 72%; }
+.stats .stat strong { text-align: right; overflow-wrap: anywhere; }
+.stats .section-title { margin-bottom: 9px; }
+#hesitation { font-size: clamp(24px, 2.2vw, 34px); }
+.pause-track { min-height: 20px; margin: 7px 0 5px; }
+@media (min-width: 761px) and (max-height: 700px) {
+  header { padding-top: 14px; padding-bottom: 14px; }
+  main { height: calc(100dvh - 54px); min-height: 0; }
+  .editor { padding-top: 22px; padding-bottom: 18px; }
+  .prompt { margin-bottom: 14px; }
+  .stats { padding: 12px 16px; gap: 8px 16px; }
+  .stats .stat { padding: 5px 0; }
+  .stats .notice { padding: 8px 12px; }
+  .pause-note { display: none; }
 }
 .section-title {
   font-size: 10px;
@@ -143,9 +174,13 @@ button.secondary {
 .language-choice .language-button { padding: 5px 8px; font-size: 11px; background: transparent; color: #55554f; border-color: transparent; }
 .language-choice .language-button.active { border-color: #aaa9a3; color: #171717; }
 @media (max-width: 760px) {
-  main { grid-template-columns: 1fr; }
+  main { grid-template-columns: 1fr; height: auto; min-height: calc(100vh - 68px); overflow: visible; }
   .editor { border-right: 0; border-bottom: 1px solid #bdbdb7; min-height: 70vh; }
   textarea { min-height: 260px; }
+  .stats { display: block; overflow: visible; }
+  .stats .group { margin-bottom: 26px; }
+  .stats .notice { margin-top: 18px; }
+  .stats .group:last-of-type { grid-column: auto; }
 }
 </style>
 </head>
@@ -153,7 +188,7 @@ button.secondary {
 <div id="app">
 <header>
   <h1>Hesitation Machine</h1>
-  <div class="header-tools"><span>writing process / prototype 01</span><div class="language-choice" aria-label="Choose interface language"><button class="language-button active" id="lang-en" type="button">EN</button><button class="language-button" id="lang-ko" type="button">한국어</button></div></div>
+  <div class="header-tools"><span>writing process / prototype 01</span><div class="language-choice" aria-label="Choose interface language"><button class="language-button active" id="lang-en" type="button">EN</button><button class="language-button" id="lang-ko" type="button">한국어</button><button class="language-button" id="lang-de" type="button">DE</button></div></div>
 </header>
 <main>
 <section class="editor">
@@ -212,6 +247,10 @@ const translations = {
   ko: {
     prompt: '쉽게 번역할 수 없는 무언가를 써보세요.', placeholder: '글쓰기를 시작하세요...', waiting: '대기 중', ready: '준비됨', writing: '작성 중', hesitating: '멈춤 감지', finished: '글쓰기 종료',
     reset: '초기화', finish: '글쓰기 마치기', done: '완료됨', temporal: '시간', textual: '텍스트', linguistic: '언어', total: '총 작성 시간', first: '첫 단어까지 걸린 시간', longest: '가장 긴 멈춤', rhythm: '입력 리듬', speed: '속도 변화', deletions: '삭제 횟수', rewrites: '수정 횟수', repeated: '반복된 단어', unfinished: '미완성 문장', punct: '문장부호', detected: '감지된 언어', switches: '언어 전환', code: '언어 혼용', current: '지금의 망설임', initial: '첫 단어를 기다리는 중입니다.', help: '입력을 멈추면 여기에 멈춘 시간이 표시됩니다. 시스템은 멈춤의 길이는 측정할 수 있지만, 그 이유는 알 수 없습니다.', note: '각 표시는 1.2초보다 긴 멈춤을 나타냅니다. 막대가 길수록 멈춘 시간이 깁니다.', activePause: '멈춤이 감지되었습니다. 시간은 보이지만 그 의미는 알 수 없습니다.', resumed: '입력이 다시 시작되었습니다', complete: '세션 종료', summary: '글쓰기 흔적', writingTime: '작성 시간', longestPause: '가장 긴 멈춤', revisions: '수정 횟수', language: '언어', disclaimer: '이 기록은 관찰 가능한 행동을 보여줄 뿐, 생각을 해석하지 않습니다. 현재 페이지에만 남으며 영구 저장되지 않습니다.'
+  },
+  de: {
+    prompt: 'Schreibe etwas, das sich nicht leicht übersetzen lässt.', placeholder: 'Beginne zu schreiben...', waiting: 'wartet', ready: 'bereit', writing: 'schreibt', hesitating: 'Pause erkannt', finished: 'Sitzung beendet',
+    reset: 'zurücksetzen', finish: 'Schreiben beenden', done: 'beendet', temporal: 'Zeit', textual: 'Text', linguistic: 'Sprache', total: 'Gesamte Schreibzeit', first: 'Zeit bis zum ersten Wort', longest: 'Längste Pause', rhythm: 'Schreibrhythmus', speed: 'Tempoänderungen', deletions: 'Löschungen', rewrites: 'Überarbeitungen', repeated: 'Wiederholte Wörter', unfinished: 'Unvollständige Sätze', punct: 'Satzzeichen', detected: 'Erkannte Sprachen', switches: 'Sprachwechsel', code: 'Sprachmischung', current: 'Zögern im Moment', initial: 'Warte auf deine ersten Worte.', help: 'Wenn du aufhörst zu schreiben, erscheint hier die Dauer der Pause. Das System kann ihre Länge messen, aber nicht ihren Grund.', note: 'Jede Markierung steht für eine Pause von mehr als 1,2 Sekunden. Längere Markierungen zeigen längere Pausen.', activePause: 'Eine Pause findet statt. Ihre Dauer ist sichtbar, ihre Bedeutung bleibt unbekannt.', resumed: 'Schreiben fortgesetzt', complete: 'Sitzung beendet', summary: 'Deine Schreibspur', writingTime: 'Schreibzeit', longestPause: 'Längste Pause', revisions: 'Überarbeitungen', language: 'Sprachen', disclaimer: 'Dies ist eine Aufzeichnung sichtbarer Handlungen, keine Interpretation deiner Gedanken. Sie bleibt nur auf dieser geöffneten Seite und wird nicht dauerhaft gespeichert.'
   }
 };
 function setLanguage(lang) {
@@ -220,6 +259,7 @@ function setLanguage(lang) {
   document.documentElement.lang = lang;
   document.getElementById('lang-en').classList.toggle('active', lang === 'en');
   document.getElementById('lang-ko').classList.toggle('active', lang === 'ko');
+  document.getElementById('lang-de').classList.toggle('active', lang === 'de');
   document.getElementById('prompt').textContent = t.prompt;
   writer.placeholder = t.placeholder;
   document.getElementById('reset').textContent = t.reset;
@@ -231,6 +271,7 @@ function setLanguage(lang) {
   Object.entries(labels).forEach(([id,label]) => { const el = document.getElementById(id); if (el && el.parentElement) el.parentElement.querySelector('span').textContent = label; });
   document.querySelector('.notice .section-title').textContent = t.current;
   document.querySelector('.pause-note').textContent = t.note;
+  updateTextStats(writer.value);
   if (!finished) {
     els.hesitation.textContent = lastInput ? els.hesitation.textContent : t.initial;
     if (!lastInput) els.trace.textContent = t.help;
@@ -252,6 +293,46 @@ function fmt(ms) {
   const s = Math.floor(ms / 1000), m = Math.floor(s / 60), sec = s % 60;
   return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
 }
+const languageWords = {
+  English: 'the and that this with from have was were are you your for not but what when where how can could would should will just about into then than there their they them she he it is be to of in on at as i we my me do did if so because really think know write writing words language feeling feel cannot easily translate something hello world today tomorrow'.split(' '),
+  German: 'der die das den dem des ein eine einer einen einem und oder aber mit von für nicht ist sind war waren ich du er sie es wir ihr man was wie wo wenn weil dass auf im in am an zu zur zum aus bei nach über unter auch noch schon nur kann könnte würde sollte wird werde haben hat bin bist seid mein meine mich mir sich als doch hier dort bitte danke heute morgen menschen sprache schreiben wort wörter gefühl gedanke hallo welt'.split(' '),
+  Spanish: 'el la los las un una unos unas y o pero con de del para por no es son era eran yo tú usted él ella nosotros ustedes que qué como cómo cuando dónde porque muy más menos también ya aquí allí hola mundo hoy mañana gracias escribir palabra palabras idioma lengua sentimiento puedo quiero tengo hacer estar ser soy estoy'.split(' '),
+  French: 'le la les un une des et ou mais avec de du pour par pas est sont était je tu vous il elle nous que qui quoi comment quand où parce très plus aussi ici là bonjour monde aujourd hui merci écrire mot mots langue sentiment suis être avoir faire'.split(' '),
+  Italian: 'il lo la gli le un una e o ma con di del della per non è sono era io tu lui lei noi che cosa come quando dove perché molto più anche qui là ciao mondo oggi domani grazie scrivere parola parole lingua sentimento essere avere fare'.split(' '),
+  Portuguese: 'o a os as um uma e ou mas com de do da para por não é são era eu tu você ele ela nós que como quando onde porque muito mais também aqui olá mundo hoje amanhã obrigado obrigada escrever palavra palavras língua sentimento ser estar ter fazer'.split(' '),
+  Dutch: 'de het een en of maar met van voor niet is zijn was waren ik jij je u hij zij wij jullie wat hoe wanneer waar omdat heel meer ook hier daar hallo wereld vandaag morgen dank je schrijven woord woorden taal gevoel'.split(' '),
+  Turkish: 've bir bu şu için ile değil çok ben sen o biz siz onlar ne nasıl neden nerede bugün yarın merhaba dünya teşekkür yazmak kelime dil duygu'.split(' '),
+  Polish: 'i oraz ale z do dla nie jest są był była ja ty on ona my wy oni co jak kiedy gdzie ponieważ bardzo tutaj tam cześć świat dziękuję pisać słowo słowa język uczucie'.split(' ')
+};
+const languageSets = Object.fromEntries(Object.entries(languageWords).map(([k,v])=>[k,new Set(v)]));
+function classifyWord(word) {
+  const w = word.toLocaleLowerCase();
+  if (/[가-힣]/.test(w)) return 'Korean';
+  if (/[\u0400-\u04FF]/.test(w)) return 'Russian';
+  if (/[\u0600-\u06FF]/.test(w)) return 'Arabic';
+  if (/[\u0370-\u03FF]/.test(w)) return 'Greek';
+  if (/[\u3040-\u30FF]/.test(w)) return 'Japanese';
+  if (/[\u4e00-\u9fff]/.test(w)) return 'Chinese';
+  if (!/[a-záéíóúüñ¿¡àâçèêëîïôûùÿœæäöüßąćęłńóśźżğıİş]/i.test(w)) return null;
+  const matches = Object.entries(languageSets).filter(([lang,set])=>set.has(w)).map(([lang])=>lang);
+  if (matches.length === 1) return matches[0];
+  if (/[ñ¿¡]/i.test(w)) return 'Spanish';
+  if (/[çœ]/i.test(w)) return 'French';
+  if (/[ãõ]/i.test(w)) return 'Portuguese';
+  if (/[ğışİ]/i.test(w)) return 'Turkish';
+  if (/[łńśźżąćę]/i.test(w)) return 'Polish';
+  if (/[äöüß]/i.test(w)) return 'German';
+  return matches[0] || null;
+}
+function analyzeLanguages(text) {
+  const tokens = text.match(/[가-힣]+|[\u0400-\u04FF]+|[\u0600-\u06FF]+|[\u0370-\u03FF]+|[\u3040-\u30FF]+|[\u4e00-\u9fff]+|[A-Za-zÀ-ž]+/g) || [];
+  const sequence = tokens.map(classifyWord);
+  const recognized = sequence.filter(Boolean);
+  const languages = [...new Set(recognized)];
+  let switches = 0, previous = null;
+  sequence.forEach(current => { if (!current) return; if (previous && current !== previous) switches++; previous = current; });
+  return { languages, switches, sequence };
+}
 function updateTextStats(text) {
   const words = text.trim().split(/\s+/).filter(Boolean);
   const normalizedWords = words.map(w => w.toLowerCase());
@@ -259,13 +340,13 @@ function updateTextStats(text) {
   els.repeated.textContent = repeated;
   els.unfinished.textContent = /(?:[A-Za-zÀ-ÿ가-힣])\s*$/.test(text) ? (text ? 1 : 0) : 0;
   els.punct.textContent = (text.match(/[.!?,;:]/g) || []).length;
-  const hasHangul = /[가-힣]/.test(text), hasLatin = /[A-Za-z]/.test(text);
-  const language = hasHangul && hasLatin ? 'mixed' : hasHangul ? 'Korean' : hasLatin ? 'Latin' : '—';
-  if (lastLanguage !== '—' && language !== '—' && language !== lastLanguage) languageSwitches++;
-  if (language !== '—') lastLanguage = language;
+  const analysis = analyzeLanguages(text);
+  const localized = {Korean:['Korean','한국어','Koreanisch'], English:['English','영어','Englisch'], German:['German','독일어','Deutsch'], Spanish:['Spanish','스페인어','Spanisch'], French:['French','프랑스어','Französisch'], Italian:['Italian','이탈리아어','Italienisch'], Portuguese:['Portuguese','포르투갈어','Portugiesisch'], Dutch:['Dutch','네덜란드어','Niederländisch'], Turkish:['Turkish','터키어','Türkisch'], Polish:['Polish','폴란드어','Polnisch'], Russian:['Russian','러시아어','Russisch'], Arabic:['Arabic','아랍어','Arabisch'], Greek:['Greek','그리스어','Griechisch'], Japanese:['Japanese','일본어','Japanisch'], Chinese:['Chinese','중국어','Chinesisch']};
+  const names = Object.fromEntries(Object.entries(localized).map(([k,v])=>[k,v[uiLanguage === 'ko' ? 1 : uiLanguage === 'de' ? 2 : 0]]));
+  els.language.textContent = analysis.languages.length ? analysis.languages.map(x => names[x]).join(' · ') : '—';
+  languageSwitches = analysis.switches;
   els.switches.textContent = languageSwitches;
-  els.language.textContent = language;
-  els.code.textContent = hasHangul && hasLatin ? 'detected' : '—';
+  els.code.textContent = analysis.languages.length > 1 ? (uiLanguage === 'ko' ? '감지됨' : uiLanguage === 'de' ? 'erkannt' : 'detected') : '—';
 }
 function render() {
   if (!start || finished) return;
@@ -274,16 +355,16 @@ function render() {
   if (lastInput) {
     const pause = now - lastInput;
     if (pause > 1200) {
-      els.hesitation.textContent = (pause/1000).toFixed(2) + ' sec';
-      els.status.textContent = 'hesitating';
+      els.hesitation.textContent = (pause/1000).toFixed(2) + ' ' + (uiLanguage === 'ko' ? '초' : uiLanguage === 'de' ? 'Sek.' : 'sec');
+      els.status.textContent = translations[uiLanguage].hesitating;
       els.trace.textContent = translations[uiLanguage].activePause;
     } else {
       els.hesitation.textContent = translations[uiLanguage].resumed;
       els.status.textContent = translations[uiLanguage].writing;
     }
   }
-  els.longest.textContent = longestPause ? (longestPause/1000).toFixed(2)+' sec' : '--';
-  els.rhythm.textContent = intervals.length ? Math.round(60000 / (intervals.reduce((a,b)=>a+b,0)/intervals.length))+' / min' : '--';
+  els.longest.textContent = longestPause ? (longestPause/1000).toFixed(2)+' '+(uiLanguage === 'ko' ? '초' : uiLanguage === 'de' ? 'Sek.' : 'sec') : '--';
+  els.rhythm.textContent = intervals.length ? Math.round(60000 / (intervals.reduce((a,b)=>a+b,0)/intervals.length))+(uiLanguage === 'ko' ? ' / 분' : uiLanguage === 'de' ? ' / Min.' : ' / min') : '--';
   els.speed.textContent = speedChanges;
 }
 writer.addEventListener('focus', () => {
@@ -297,11 +378,11 @@ writer.addEventListener('input', e => {
     const gap = now - lastInput;
     if (gap > 1200) {
       longestPause = Math.max(longestPause, gap);
-      els.longest.textContent = (longestPause/1000).toFixed(2)+' sec';
+      els.longest.textContent = (longestPause/1000).toFixed(2)+' '+(uiLanguage === 'ko' ? '초' : uiLanguage === 'de' ? 'Sek.' : 'sec');
       const mark = document.createElement('span');
       mark.className = 'pause-mark';
       mark.style.height = Math.min(34, Math.max(8, gap / 250)) + 'px';
-      mark.title = 'Pause: ' + (gap/1000).toFixed(2) + ' seconds';
+      mark.title = (uiLanguage === 'ko' ? '멈춤: ' : uiLanguage === 'de' ? 'Pause: ' : 'Pause: ') + (gap/1000).toFixed(2) + (uiLanguage === 'ko' ? '초' : uiLanguage === 'de' ? ' Sekunden' : ' seconds');
       document.getElementById('pauseTrack').appendChild(mark);
       pauseMarkedForInput = true;
     } else intervals.push(gap);
@@ -350,12 +431,13 @@ document.getElementById('save').onclick = () => {
 };
 document.getElementById('lang-en').onclick = () => setLanguage('en');
 document.getElementById('lang-ko').onclick = () => setLanguage('ko');
+document.getElementById('lang-de').onclick = () => setLanguage('de');
 setLanguage('en');
 </script>
 
 <!--sites-preview-theme:start-->
-<style data-sites-preview-theme>:root{--site-secondary:#eaebeb !important;--site-background:#ffffff !important;--site-on-background:#000000 !important}</style>
-<script type="application/json" data-sites-preview-theme>{"appearance":"custom","primary":null,"secondary":"#eaebeb","background":"#ffffff","typography":"original","spacing":1,"roundness":null,"headingScale":1,"decorationOpacity":null}</script>
+<style data-sites-preview-theme>:root{--site-secondary:#eaebeb !important;--site-background:#ffffff !important;--site-on-background:#000000 !important;--site-spacing-scale:0.5 !important;--site-font-body:system-ui,sans-serif !important;--site-heading-scale:1.05 !important}</style>
+<script type="application/json" data-sites-preview-theme>{"appearance":"custom","primary":null,"secondary":"#eaebeb","background":"#ffffff","typography":"modern","spacing":0.5,"roundness":null,"headingScale":1.05,"decorationOpacity":null}</script>
 <!--sites-preview-theme:end-->
 </body>
 </html>
